@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Row, Col, Input, Table, Space, message, Progress, InputNumber   } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import dayjs from 'dayjs';
 import {
   BrowserRouter as Router,
   Switch,
@@ -10,7 +11,12 @@ import {
 } from "react-router-dom";
 import 'antd/dist/antd.css'; // or 'antd/dist/antd.less'
 import './App.css';
-
+import relativeTime from 'dayjs/plugin/relativeTime';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+dayjs.extend(relativeTime)
+dayjs.extend(utc)
+dayjs.extend(timezone)
 const { Header, Content, Footer } = Layout;
 const { Search } = Input;
 
@@ -61,6 +67,12 @@ const App = () => {
       responsive: ['md'],
     },
     {
+      title: `Last Mine`,
+      dataIndex: 'last',
+      key: 'wax',
+      responsive: ['md'],
+    },
+    {
       title: 'Remove',
       key: 'action',
       render: (text, record) => (
@@ -81,18 +93,21 @@ const App = () => {
     let all = accs.map(acc => {
       let request1 = axios.post('https://api.waxsweden.org/v1/chain/get_account', { "account_name": acc });
       let request2 = axios.post('https://api.waxsweden.org/v1/chain/get_table_rows', { "json": true, "code": "alien.worlds", "scope": acc, "table": "accounts", "table_key": "", "lower_bound": "", "upper_bound": "", "index_position": 1, "key_type": "", "limit": 1, "reverse": false, "show_payer": false });
-      return axios.all([request1, request2])
+      let request3 = axios.post('https://api.waxsweden.org/v1/chain/get_table_rows', {"json":true,"code":"m.federation","scope":"m.federation","table":"miners","table_key":"","lower_bound":acc,"upper_bound":acc,"index_position":1,"key_type":"","limit":10,"reverse":false,"show_payer":false});
+      return axios.all([request1, request2, request3])
         .then(
           axios.spread((...responses) => {
             let w = responses[0].data.core_liquid_balance.split(' ');
             let t = responses[1].data.rows[0].balance.split(' ');
+              // console.log( dayjs().to(dayjs(responses[2].data.rows[0].last_mine).add(7,'hour').toISOString()) );
             // console.log(responses[0].data.account_name, +((responses[0].data.cpu_limit.used / responses[0].data.cpu_limit.max) * 100).toFixed(0))
             return {
               account: responses[0].data.account_name,
               cpu: +((responses[0].data.cpu_limit.used / responses[0].data.cpu_limit.max) * 100).toFixed(0),
               ram: +((responses[0].data.ram_usage / responses[0].data.ram_quota) * 100).toFixed(0),
               wax: +w[0],
-              tlm: +t[0]
+              tlm: +t[0],
+              last: dayjs().to(dayjs(responses[2].data.rows[0].last_mine).add(7,'hour').toISOString())
             }
           })
         )
@@ -142,6 +157,7 @@ const App = () => {
   useEffect(() => {
     if (sec > 0) {
       console.log('Change sec', sec);
+      message.info(`Change time ${sec}`);
       loopTime();
     }
   }, [sec])
