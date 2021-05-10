@@ -58,7 +58,6 @@ const App = () => {
       title: `TLM ${allTlm}`,
       dataIndex: 'tlm',
       key: 'tlm',
-      responsive: ['md'],
     },
     {
       title: `WAX ${allWax}`,
@@ -70,7 +69,6 @@ const App = () => {
       title: `Last Mine`,
       dataIndex: 'last',
       key: 'wax',
-      responsive: ['md'],
     },
     {
       title: 'Remove',
